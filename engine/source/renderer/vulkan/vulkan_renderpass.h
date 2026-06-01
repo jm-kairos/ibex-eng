@@ -8,17 +8,17 @@ void vulkan_renderpass_create(
     ClearColor clear_color,
     f32 depth,
     u32 stencil,
-    __VulkanRenderPass* out_render_pass);
+    __pass::__VulkanRenderPass* out_render_pass);
 
 void vulkan_renderpass_destroy(
     __VulkanContext* context,
-    __VulkanRenderPass* render_pass);
+    __pass::__VulkanRenderPass* render_pass);
 
 void vulkan_renderpass_begin(
-    __VulkanRenderPass* render_pass,
-    __VulkanCommandBuffer* command_buffer,
+    __pass::__VulkanRenderPass* render_pass,
+    __cmd_buffer::__VulkanCommandBuffer* command_buffer,
     VkFramebuffer frame_buffer);
 
 void vulkan_renderpass_end(
-    __VulkanRenderPass* render_pass,
-    __VulkanCommandBuffer* command_buffer);
+    __pass::__VulkanRenderPass* render_pass,
+    __cmd_buffer::__VulkanCommandBuffer* command_buffer);

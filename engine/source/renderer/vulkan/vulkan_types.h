@@ -59,7 +59,8 @@ struct __VulkanSwapchain{
     __VulkanImage depth_attachment;
 };
 
-struct __VulkanCommandBuffer{
+namespace __cmd_buffer{
+
     typedef enum EVulkanCommandBufferState
     {
         READY_FOR_RECORDING,
@@ -70,11 +71,14 @@ struct __VulkanCommandBuffer{
         NOT_ALLOCATED
     } EState;
 
-    VkCommandBuffer handle;
-    EState state;
-};
+    struct __VulkanCommandBuffer{
+        VkCommandBuffer handle;
+        EState state;
+    };
+}
 
-struct __VulkanRenderPass{
+namespace __pass{
+
     typedef enum EVulkanRenderPassState
     {
         READY_FOR_RECORDING,
@@ -85,13 +89,15 @@ struct __VulkanRenderPass{
         NOT_ALLOCATED
     } EState;
 
-    VkRenderPass handle;
-    ImageRenderArea render_area;
-    ClearColor clear_color;
-    f32 depth;
-    u32 stencil;
-    EState state;
-};
+    struct __VulkanRenderPass{
+        VkRenderPass handle;
+        ImageRenderArea render_area;
+        ClearColor clear_color;
+        f32 depth;
+        u32 stencil;
+        EState state;
+    };
+}
 
 struct __VulkanContext{
     VkInstance instance;
@@ -104,7 +110,8 @@ struct __VulkanContext{
     u32 image_index;
     u32 current_frame;
     b8 recreate_swapchain;
-    __VulkanRenderPass main_render_pass;
+    __pass::__VulkanRenderPass main_render_pass;
+    Vector(__cmd_buffer::__VulkanCommandBuffer) graphics_command_buffers;
 
     i32 (*find_memory_index)(u32 type_filter, u32 properties);
 };

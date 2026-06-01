@@ -7,6 +7,7 @@
 #include "vulkan_device.h"
 #include "vulkan_swapchain.h"
 #include "vulkan_renderpass.h"
+#include "vulkan_command_buffer.h"
 
 #include "containers/vector.h" 
 #include "containers/string.h"
@@ -15,9 +16,12 @@
 
 static __VulkanContext context = {};
 
+// Begin Private Functions.
 i32 find_memory_index(u32 type_filter, u32 properties);
+void create_command_buffers(THIS_RENDERER_SERVER_PTR renderer_server);
+// End Private Functions.
 
-b8 vulkan_renderer_server_initialize(RendererServer *renderer_server, const char *app_name, platform_state *plat_stat)
+b8 vulkan_renderer_server_initialize(THIS_RENDERER_SERVER_PTR renderer_server, const char *app_name, platform_state *plat_stat)
 {  
     context.find_memory_index = find_memory_index;
 
@@ -150,12 +154,15 @@ b8 vulkan_renderer_server_initialize(RendererServer *renderer_server, const char
         1.0f,
         0,
         &context.main_render_pass);
+
+    // Create command buffers.
+    create_command_buffers(renderer_server);
     
     IBX_LOG_INFO("Vulkan renderer initialized successfully.")
     return TRUE;
 }
 
-void vulkan_renderer_server_terminate(RendererServer *renderer_server)
+void vulkan_renderer_server_terminate(THIS_RENDERER_SERVER_PTR renderer_server)
 {
     IBX_LOG_DEBUG("Destroying Vulkan main render pass...")
     vulkan_renderpass_destroy(&context, &context.main_render_pass);
@@ -169,16 +176,16 @@ void vulkan_renderer_server_terminate(RendererServer *renderer_server)
     vkDestroyInstance(context.instance, context.allocator);
 }
 
-void vulkan_renderer_server_resized(RendererServer *renderer_server, u16 width, u16 height)
+void vulkan_renderer_server_resized(THIS_RENDERER_SERVER_PTR renderer_server, u16 width, u16 height)
 {
 }
 
-b8 vulkan_renderer_server_begin_frame(RendererServer *renderer_server, real dt)
+b8 vulkan_renderer_server_begin_frame(THIS_RENDERER_SERVER_PTR renderer_server, real dt)
 {
     return b8();
 }
 
-b8 vulkan_renderer_server_end_frame(RendererServer *renderer_server, real dt)
+b8 vulkan_renderer_server_end_frame(THIS_RENDERER_SERVER_PTR renderer_server, real dt)
 {
     return b8();
 }
@@ -198,4 +205,46 @@ i32 find_memory_index(u32 type_filter, u32 properties)
 
     IBX_LOG_WARN("Failed to find suitable memory type for allocation. Type filter: %i, required properties: %i", type_filter, properties)
     return -1;
+}
+
+void create_command_buffers(THIS_RENDERER_SERVER_PTR renderer_server)
+{
+    // Why do we have more than one command buffer? 
+    // We need one command buffer per frame in flight, 
+    // so that we can record commands for the next frame while the current frame is being rendered.
+
+    if (context.graphics_command_buffers.empty())
+    {
+        const size_t swapchain_image_count = (size_t)context.swapchain.image_count;
+        context.graphics_command_buffers.reserve(swapchain_image_count);
+        for (u32 i = 0; i < swapchain_image_count; ++i)
+        {
+            __cmd_buffer::__VulkanCommandBuffer cmd_buffer;
+            cmd_buffer.handle = VK_NULL_HANDLE;
+            cmd_buffer.state = __cmd_buffer::EState::NOT_ALLOCATED;
+            context.graphics_command_buffers.push_back(cmd_buffer);
+        }
+    }
+    
+    for (auto& cmd_buffer : context.graphics_command_buffers)
+    {
+        if (cmd_buffer.handle != VK_NULL_HANDLE)
+        {
+            vulkan_command_buffer_free_to_pool(
+                &context, 
+                context.device.graphics_command_pool, 
+                &cmd_buffer
+            );
+        }
+
+        cmd_buffer.handle = VK_NULL_HANDLE;
+        cmd_buffer.state = __cmd_buffer::EState::NOT_ALLOCATED;
+
+        vulkan_command_buffer_allocate(
+            &context, 
+            context.device.graphics_command_pool, 
+            TRUE,
+            &cmd_buffer
+        );
+    }
 }

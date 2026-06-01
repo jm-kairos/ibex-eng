@@ -11,7 +11,7 @@ void vulkan_renderpass_create(
     ClearColor clear_color,
     f32 depth,
     u32 stencil,
-    __VulkanRenderPass* out_render_pass)
+    __pass::__VulkanRenderPass* out_render_pass)
 {
     out_render_pass->render_area = render_area;
     out_render_pass->clear_color = clear_color;
@@ -108,24 +108,24 @@ void vulkan_renderpass_create(
         context->allocator,
         &out_render_pass->handle))
 
-    out_render_pass->state = __VulkanRenderPass::EState::READY_FOR_RECORDING;
+    out_render_pass->state = __pass::EState::READY_FOR_RECORDING;
 }
 
 void vulkan_renderpass_destroy(
     __VulkanContext* context,
-    __VulkanRenderPass* render_pass)
+    __pass::__VulkanRenderPass* render_pass)
 {
     if (render_pass->handle != VK_NULL_HANDLE)
     {
         vkDestroyRenderPass(context->device.logical_device, render_pass->handle, context->allocator);
         render_pass->handle = VK_NULL_HANDLE;
     }
-    render_pass->state = __VulkanRenderPass::EState::NOT_ALLOCATED;
+    render_pass->state = __pass::EState::NOT_ALLOCATED;
 }
 
 void vulkan_renderpass_begin(
-    __VulkanRenderPass* render_pass,
-    __VulkanCommandBuffer* command_buffer,
+    __pass::__VulkanRenderPass* render_pass,
+    __cmd_buffer::__VulkanCommandBuffer* command_buffer,
     VkFramebuffer frame_buffer)
 {
     VkRenderPassBeginInfo render_pass_begin_info = {};
@@ -155,16 +155,16 @@ void vulkan_renderpass_begin(
         &render_pass_begin_info,
         VK_SUBPASS_CONTENTS_INLINE);
 
-    command_buffer->state = __VulkanCommandBuffer::EState::IN_RENDER_PASS;
-    render_pass->state = __VulkanRenderPass::EState::IN_RENDER_PASS;
+    command_buffer->state = __cmd_buffer::EState::IN_RENDER_PASS;
+    render_pass->state = __pass::EState::IN_RENDER_PASS;
 }
 
 void vulkan_renderpass_end(
-    __VulkanRenderPass* render_pass,
-    __VulkanCommandBuffer* command_buffer)
-{
+    __pass::__VulkanRenderPass* render_pass,
+    __cmd_buffer::__VulkanCommandBuffer* command_buffer)
+{   
     vkCmdEndRenderPass(command_buffer->handle);
 
-    command_buffer->state = __VulkanCommandBuffer::EState::RECORDING;
-    render_pass->state = __VulkanRenderPass::EState::RECORDING;
+    command_buffer->state = __cmd_buffer::EState::RECORDING;
+    render_pass->state = __pass::EState::RECORDING;
 }
